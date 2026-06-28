@@ -50,6 +50,7 @@ namespace StarterAssets
 		public float TopClamp = 90.0f;
 		[Tooltip("How far in degrees can you move the camera down")]
 		public float BottomClamp = -90.0f;
+		public bool GravityFlipped = false;
 
 		// cinemachine
 		private float _cinemachineTargetPitch;
@@ -64,7 +65,7 @@ namespace StarterAssets
 		private float _jumpTimeoutDelta;
 		private float _fallTimeoutDelta;
 
-	
+
 #if ENABLE_INPUT_SYSTEM
 		private PlayerInput _playerInput;
 #endif
@@ -78,11 +79,11 @@ namespace StarterAssets
 		{
 			get
 			{
-				#if ENABLE_INPUT_SYSTEM
+#if ENABLE_INPUT_SYSTEM
 				return _playerInput.currentControlScheme == "KeyboardMouse";
-				#else
+#else
 				return false;
-				#endif
+#endif
 			}
 		}
 
@@ -125,7 +126,21 @@ namespace StarterAssets
 		private void GroundedCheck()
 		{
 			// set sphere position, with offset
-			Vector3 spherePosition = new Vector3(transform.position.x, transform.position.y - GroundedOffset, transform.position.z);
+			Vector3 spherePosition;
+			if (GravityFlipped)
+			{
+				spherePosition = new Vector3(
+					transform.position.x,
+					transform.position.y + GroundedOffset,
+					transform.position.z);
+			}
+			else
+			{
+				spherePosition = new Vector3(
+					transform.position.x,
+					transform.position.y - GroundedOffset,
+					transform.position.z);
+			}
 			Grounded = Physics.CheckSphere(spherePosition, GroundedRadius, GroundLayers, QueryTriggerInteraction.Ignore);
 		}
 
@@ -136,7 +151,7 @@ namespace StarterAssets
 			{
 				//Don't multiply mouse input by Time.deltaTime
 				float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
-				
+
 				_cinemachineTargetPitch += _input.look.y * RotationSpeed * deltaTimeMultiplier;
 				_rotationVelocity = _input.look.x * RotationSpeed * deltaTimeMultiplier;
 
@@ -206,16 +221,35 @@ namespace StarterAssets
 				_fallTimeoutDelta = FallTimeout;
 
 				// stop our velocity dropping infinitely when grounded
-				if (_verticalVelocity < 0.0f)
+				if (!GravityFlipped)
 				{
-					_verticalVelocity = -2f;
+					if (_verticalVelocity < 0.0f)
+					{
+						_verticalVelocity = -2f;
+					}
+				}
+				else
+				{
+					if (_verticalVelocity > 0.0f)
+					{
+						_verticalVelocity = 2f;
+					}
 				}
 
+				if (Input.GetKeyDown(KeyCode.K))
+				{
+					_verticalVelocity = 10f;
+				}
 				// Jump
 				if (_input.jump && _jumpTimeoutDelta <= 0.0f)
 				{
-					// the square root of H * -2 * G = how much velocity needed to reach desired height
-					_verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
+					_verticalVelocity =
+						Mathf.Sqrt(JumpHeight * 2f * Mathf.Abs(Gravity));
+
+					if (GravityFlipped)
+					{
+						_verticalVelocity *= -1f;
+					}
 				}
 
 				// jump timeout
@@ -263,6 +297,15 @@ namespace StarterAssets
 
 			// when selected, draw a gizmo in the position of, and matching radius of, the grounded collider
 			Gizmos.DrawSphere(new Vector3(transform.position.x, transform.position.y - GroundedOffset, transform.position.z), GroundedRadius);
+		}
+
+		public void FlipPlayer()
+		{
+			GravityFlipped = !GravityFlipped;
+
+			Gravity *= -1f;
+
+			transform.Rotate(180f, 0f, 0f);
 		}
 	}
 }
