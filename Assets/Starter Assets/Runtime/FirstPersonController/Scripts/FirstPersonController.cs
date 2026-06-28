@@ -2,6 +2,7 @@
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
+using System.Collections;
 
 namespace StarterAssets
 {
@@ -305,7 +306,32 @@ namespace StarterAssets
 
 			Gravity *= -1f;
 
-			transform.Rotate(180f, 0f, 0f);
+			StartCoroutine(SmoothCameraFlip());
+		}
+
+		private IEnumerator SmoothCameraFlip()
+		{
+			Quaternion startRot = transform.localRotation;
+
+			Quaternion endRot =
+				startRot * Quaternion.Euler(0f, 0f, 180f);
+
+			float duration = 0.2f;
+			float elapsed = 0f;
+
+			while (elapsed < duration)
+			{
+				transform.localRotation =
+					Quaternion.Slerp(
+						startRot,
+						endRot,
+						elapsed / duration);
+
+				elapsed += Time.deltaTime;
+				yield return null;
+			}
+
+			transform.localRotation = endRot;
 		}
 	}
 }
