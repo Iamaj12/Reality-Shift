@@ -72,6 +72,13 @@ namespace StarterAssets
         private float _yaw;
         private float _pitch;
         private float _roll;
+        private Vector3 UpAxis
+        {
+            get
+            {
+                return GravityFlipped ? Vector3.down : Vector3.up;
+            }
+        }
         [SerializeField] private float flipDuration = 0.2f;
 
         private const float _threshold = 0.01f;
@@ -165,11 +172,12 @@ namespace StarterAssets
                 BottomClamp,
                 TopClamp);
 
-            transform.rotation =
-                Quaternion.Euler(
-                    0f,
-                    _yaw,
-                    GravityFlipped ? 180f : 0f);
+            Quaternion yawRotation = Quaternion.AngleAxis(_yaw, Vector3.up);
+            Quaternion rollRotation = Quaternion.AngleAxis(
+                GravityFlipped ? 180f : 0f,
+                Vector3.forward);
+
+            transform.rotation = rollRotation * yawRotation;
 
             CinemachineCameraTarget.transform.localRotation =
                 Quaternion.Euler(
@@ -317,6 +325,7 @@ namespace StarterAssets
             Gravity *= -1f;
 
             transform.Rotate(0f, 0f, 180f);
+            _yaw = transform.eulerAngles.y;
         }
     }
 }
