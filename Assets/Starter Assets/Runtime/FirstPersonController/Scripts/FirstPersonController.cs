@@ -2,7 +2,6 @@
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
-using System.Collections;
 
 namespace StarterAssets
 {
@@ -73,6 +72,11 @@ namespace StarterAssets
 		private CharacterController _controller;
 		private StarterAssetsInputs _input;
 		private GameObject _mainCamera;
+		private Quaternion _targetRotation;
+		private Quaternion _startRotation;
+		private float _rotationTime;
+		private bool _isFlipping;
+		[SerializeField] private float flipDuration = 0.2f;
 
 		private const float _threshold = 0.01f;
 
@@ -104,7 +108,7 @@ namespace StarterAssets
 #if ENABLE_INPUT_SYSTEM
 			_playerInput = GetComponent<PlayerInput>();
 #else
-			Debug.LogError( "Starter Assets package is missing dependencies. Please use Tools/Starter Assets/Reinstall Dependencies to fix it");
+			Debug.LogError("Starter Assets package is missing dependencies. Please use Tools/Starter Assets/Reinstall Dependencies to fix it");
 #endif
 
 			// reset our timeouts on start
@@ -114,6 +118,20 @@ namespace StarterAssets
 
 		private void Update()
 		{
+			if (_isFlipping)
+			{
+				_rotationTime += Time.deltaTime;
+
+				float t = Mathf.Clamp01(_rotationTime / flipDuration);
+
+				transform.rotation = Quaternion.Slerp(
+					_startRotation,
+					_targetRotation,
+					t);
+
+				if (t >= 1f)
+					_isFlipping = false;
+			}
 			JumpAndGravity();
 			GroundedCheck();
 			Move();
@@ -147,22 +165,39 @@ namespace StarterAssets
 
 		private void CameraRotation()
 		{
-			// if there is an input
+			if (_isFlipping) return;
+
 			if (_input.look.sqrMagnitude >= _threshold)
 			{
-				//Don't multiply mouse input by Time.deltaTime
-				float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
+				float deltaTimeMultiplier =
+					IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
 
-				_cinemachineTargetPitch += _input.look.y * RotationSpeed * deltaTimeMultiplier;
-				_rotationVelocity = _input.look.x * RotationSpeed * deltaTimeMultiplier;
+				if (GravityFlipped)
+				{
+					_cinemachineTargetPitch -=
+						_input.look.y * RotationSpeed * deltaTimeMultiplier;
+				}
+				else
+				{
+					_cinemachineTargetPitch +=
+						_input.look.y * RotationSpeed * deltaTimeMultiplier;
+				}
 
-				// clamp our pitch rotation
-				_cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, BottomClamp, TopClamp);
+				_rotationVelocity =
+					_input.look.x * RotationSpeed * deltaTimeMultiplier;
 
-				// Update Cinemachine camera target pitch
-				CinemachineCameraTarget.transform.localRotation = Quaternion.Euler(_cinemachineTargetPitch, 0.0f, 0.0f);
+				if (GravityFlipped)
+				{
+					_rotationVelocity *= -1f;
+				}
 
-				// rotate the player left and right
+				_cinemachineTargetPitch =
+					ClampAngle(_cinemachineTargetPitch,
+						BottomClamp,
+						TopClamp);
+
+				CinemachineCameraTarget.transform.localRotation = Quaternion.Euler(_cinemachineTargetPitch, 0f, GravityFlipped ? 180f : 0f);
+
 				transform.Rotate(Vector3.up * _rotationVelocity);
 			}
 		}
@@ -303,35 +338,13 @@ namespace StarterAssets
 		public void FlipPlayer()
 		{
 			GravityFlipped = !GravityFlipped;
-
 			Gravity *= -1f;
 
-			StartCoroutine(SmoothCameraFlip());
-		}
+			_startRotation = transform.rotation;
+			_targetRotation = transform.rotation * Quaternion.Euler(0f, 0f, 180f);
 
-		private IEnumerator SmoothCameraFlip()
-		{
-			Quaternion startRot = transform.localRotation;
-
-			Quaternion endRot =
-				startRot * Quaternion.Euler(0f, 0f, 180f);
-
-			float duration = 0.2f;
-			float elapsed = 0f;
-
-			while (elapsed < duration)
-			{
-				transform.localRotation =
-					Quaternion.Slerp(
-						startRot,
-						endRot,
-						elapsed / duration);
-
-				elapsed += Time.deltaTime;
-				yield return null;
-			}
-
-			transform.localRotation = endRot;
+			_rotationTime = 0f;
+			_isFlipping = true;
 		}
 	}
 }

@@ -55,6 +55,7 @@
     <Compile Include="Assets\Starter Assets\Runtime\FirstPersonController\Scripts\FirstPersonController.cs" />
     <Compile Include="Assets\Starter Assets\Runtime\Mobile\Scripts\VirtualInput.cs" />
     <Compile Include="Assets\Starter Assets\Runtime\ThirdPersonController\Scripts\ThirdPersonController.cs" />
+    <Compile Include="Assets\Starter Assets\Runtime\FirstPersonController\Scripts\GravityFirstPersonController.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Starter Assets\Runtime\Unity.StarterAssets.asmdef" />

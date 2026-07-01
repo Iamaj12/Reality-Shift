@@ -7,8 +7,8 @@ public class GravityPad : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            FirstPersonController controller =
-                other.GetComponent<FirstPersonController>();
+            GravityFirstPersonController controller =
+                other.GetComponent<GravityFirstPersonController>();
 
             if (controller != null)
             {
